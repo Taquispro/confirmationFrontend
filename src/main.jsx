@@ -1,7 +1,10 @@
 import React,{useEffect,useState} from 'react'; import {createRoot} from 'react-dom/client'; import dayjs from 'dayjs';
 import {Alert,Box,Button,CircularProgress,Dialog,DialogActions,DialogContent,DialogTitle,FormControl,FormControlLabel,Radio,RadioGroup,Snackbar,TextField,Typography} from '@mui/material'; import {getCalendar,getDate,create,update} from './calendarApi'; import './styles.css';
+import {createVisitorTracker} from './visitorTracking';
 const names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function App(){const [month,setMonth]=useState(dayjs().startOf('month')), [days,setDays]=useState([]),[selected,setSelected]=useState(null),[record,setRecord]=useState(null),[status,setStatus]=useState('CONFIRMED'),[comment,setComment]=useState(''),[loading,setLoading]=useState(true),[message,setMessage]=useState('');
+ const [trackVisit] = useState(() => createVisitorTracker());
+ useEffect(()=>{trackVisit(window.location.pathname); const onPopState=()=>trackVisit(window.location.pathname);window.addEventListener('popstate',onPopState);return()=>window.removeEventListener('popstate',onPopState)},[trackVisit]);
  const load=async()=>{setLoading(true);try{setDays(await getCalendar(month.month()+1,month.year()))}catch(e){setMessage(e.response?.data?.message||'Could not load calendar.')}finally{setLoading(false)}}; useEffect(()=>{load()},[month]);
  const open=async d=>{if(!d.clickable)return;setSelected(d);setRecord(null);setStatus(d.status||'CONFIRMED');setComment('');if(d.editable){try{const r=await getDate(d.date);setRecord(r);setStatus(r.status);setComment(r.comment||'')}catch(e){setMessage('Could not load confirmation.')}}};
  const save=async()=>{try{if(record)await update(selected.date,{status,comment});else await create({status,comment});setMessage(record?'Confirmation updated.':'Confirmation saved.');setSelected(null);load()}catch(e){setMessage(e.response?.data?.message||'Could not save confirmation.')}};
